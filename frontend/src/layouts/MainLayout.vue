@@ -663,7 +663,15 @@ const publish = async () => {
       EventsEmit('app:toast', { message: '已取消发布', type: 'info', duration: 2000 })
     } else {
       deployOutcome.value = 'failed'
-      EventsEmit('app:toast', { message: '部署失败', type: 'error', duration: 3000 })
+      // 日志面板暂时隐藏，失败原因必须通过 toast 让用户看到。
+      // 取 message 首行（git/HTTP 错误常带多行 stack），截断 200 字避免溢出。
+      const firstLine = msg.split('\n')[0].trim()
+      const shortMsg = firstLine.length > 200 ? firstLine.slice(0, 200) + '…' : firstLine
+      EventsEmit('app:toast', {
+        message: `部署失败：${shortMsg}`,
+        type: 'error',
+        duration: 8000,
+      })
     }
   } finally {
     publishLoading.value = false
