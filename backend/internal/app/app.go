@@ -8,6 +8,7 @@ import (
 	"gridea-pro/backend/internal/service"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -367,18 +368,46 @@ func (a *App) LoadSite() map[string]interface{} {
 	appDir := a.appDir
 	a.mu.RUnlock()
 
-	// Load data using services
-	posts, _ := a.services.Post.LoadPosts()
-	categories, _ := a.services.Category.LoadCategories()
-	tags, _ := a.services.Post.LoadTags()
+	// 收集 8 路 LoadX 的错误。任一失败都向上 toast 让用户能感知，
+	// 避免 issue #107 那种"打开后某些列表静默为空"的体验。
+	// 收集而非 fail-fast：允许其他模块仍然展示，最大程度可用。
+	var failedAreas []string
+	var detailErrs []string
+	collect := func(area string, err error) {
+		if err == nil {
+			return
+		}
+		failedAreas = append(failedAreas, area)
+		detailErrs = append(detailErrs, fmt.Sprintf("%s: %v", area, err))
+	}
 
-	menus, _ := a.services.Menu.LoadMenus()
-	links, _ := a.services.Link.LoadLinks()
-	themes, _ := a.services.Theme.LoadThemes()
-	themeConfig, _ := a.services.Theme.LoadThemeConfig()
+	// Load data using services
+	posts, err := a.services.Post.LoadPosts()
+	collect("文章", err)
+	categories, err := a.services.Category.LoadCategories()
+	collect("分类", err)
+	tags, err := a.services.Post.LoadTags()
+	collect("标签", err)
+
+	menus, err := a.services.Menu.LoadMenus()
+	collect("菜单", err)
+	links, err := a.services.Link.LoadLinks()
+	collect("友链", err)
+	themes, err := a.services.Theme.LoadThemes()
+	collect("主题列表", err)
+	themeConfig, err := a.services.Theme.LoadThemeConfig()
+	collect("主题配置", err)
 
 	// Load settings via service
-	setting, _ := a.services.Setting.GetSetting()
+	setting, err := a.services.Setting.GetSetting()
+	collect("站点设置", err)
+
+	if len(failedAreas) > 0 {
+		summary := fmt.Sprintf("数据加载失败（%d 项）: %s，请重启或检查 config/ 权限。",
+			len(failedAreas), strings.Join(failedAreas, "、"))
+		runtime.LogError(a.ctx, summary+" 详情: "+strings.Join(detailErrs, "; "))
+		a.ShowToast(summary, "error")
+	}
 
 	// Find current theme's custom config schema
 	var currentThemeConfig []interface{}

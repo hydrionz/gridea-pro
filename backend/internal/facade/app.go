@@ -231,7 +231,13 @@ func (s *AppServices) InvalidateAllCaches() {
 		}
 	}
 	if s.Repositories.Post != nil {
-		s.Repositories.Post.Reload(context.Background())
+		// Post repo 走的是 Reload（同步扫盘）而非 Invalidate。
+		// 历史代码这里直接丢错——issue #107 撞到时连"posts 加载失败"这条线索都没有。
+		// 至少 log 一笔，配合 Fix 1 的 partial scan / "all failed" 错误能精确定位。
+		if err := s.Repositories.Post.Reload(context.Background()); err != nil {
+			slog.Error("InvalidateAllCaches: Post.Reload failed",
+				"error", err)
+		}
 	}
 }
 
