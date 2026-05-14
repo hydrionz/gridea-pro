@@ -20,6 +20,7 @@ import { useArticleStats } from './useArticleStats'
 import { useArticleImageUrl } from '../../shared/useImageUrl'
 import { generateId } from '@/utils/id'
 import dayjs from 'dayjs'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
 import slug from '@/helpers/slug'
 import ga from '@/helpers/analytics'
 import { toast } from '@/helpers/toast'
@@ -32,6 +33,9 @@ import {
     fromDate,
     CalendarDate,
 } from '@internationalized/date'
+
+// 严格按 'YYYY-MM-DD HH:mm:ss' 解析日期时间手动输入
+dayjs.extend(customParseFormat)
 
 /** 特色图片内部数据结构 */
 export interface FeatureImageData {
@@ -167,22 +171,19 @@ export function useArticleForm(articleFileName: () => string) {
         },
     })
 
-    const timeValue = computed({
+    // 完整日期时间桥接：日历下方的输入框直接呈现并接受 'YYYY-MM-DD HH:mm:ss'，
+    // 方便用户手敲快速改时间。set 严格解析，非法输入直接忽略（由组件侧草稿回滚）。
+    const dateTimeValue = computed({
         get: () => {
-            return form.createdAt && dayjs.isDayjs(form.createdAt) && form.createdAt.isValid()
-                ? form.createdAt.format('HH:mm:ss')
-                : '00:00:00'
+            return dayjs.isDayjs(form.createdAt) && form.createdAt.isValid()
+                ? form.createdAt.format('YYYY-MM-DD HH:mm:ss')
+                : ''
         },
         set: (val: string) => {
-            if (!val) return
-            const [hours, minutes, seconds] = val.split(':').map(Number)
-            if (isNaN(hours) || isNaN(minutes)) return
-
-            let current = form.createdAt
-            if (!dayjs.isDayjs(current) || !current.isValid()) {
-                current = dayjs()
+            const parsed = dayjs(val, 'YYYY-MM-DD HH:mm:ss', true)
+            if (parsed.isValid()) {
+                form.createdAt = parsed
             }
-            form.createdAt = current.hour(hours).minute(minutes).second(seconds || 0)
         },
     })
 
@@ -481,7 +482,7 @@ export function useArticleForm(articleFileName: () => string) {
         availableCategories,
         // 日期
         dateValue,
-        timeValue,
+        dateTimeValue,
         // Feature Image
         featureDisplayValue,
         featureImagePreviewSrc,

@@ -51,10 +51,10 @@
             <!-- Settings Drawer -->
             <ArticleSettingsDrawer v-model:open="articleSettingsVisible" :form="form" :tag-input="tagInput"
                 :available-tags="availableTags" :available-categories="availableCategories" :date-value="dateValue"
-                :time-value="timeValue" :feature-display-value="featureDisplayValue"
+                :date-time-value="dateTimeValue" :feature-display-value="featureDisplayValue"
                 :feature-image-preview-src="featureImagePreviewSrc" :is-generating-slug="isGeneratingSlug"
                 @update:tag-input="tagInput = $event"
-                @update:date-value="dateValue = $event" @update:time-value="timeValue = $event"
+                @update:date-value="dateValue = $event" @update:date-time-value="dateTimeValue = $event"
                 @update:feature-display-value="featureDisplayValue = $event" @add-tag="addTag" @remove-tag="removeTag"
                 @select-tag="selectTag" @file-name-change="handleFileNameChange"
                 @select-feature-image="selectFeatureImage" @clear-feature-image="clearFeatureImage"
@@ -112,7 +112,7 @@ const {
     availableTags,
     availableCategories,
     dateValue,
-    timeValue,
+    dateTimeValue,
     featureDisplayValue,
     featureImagePreviewSrc,
     selectFeatureImage,

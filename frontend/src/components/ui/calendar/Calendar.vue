@@ -6,9 +6,10 @@ import {
   type CalendarRootProps,
   useForwardPropsEmits,
 } from 'radix-vue'
-import { getLocalTimeZone } from '@internationalized/date'
+import { getLocalTimeZone, type DateValue } from '@internationalized/date'
 import dayjs from 'dayjs'
 import weekOfYear from 'dayjs/plugin/weekOfYear'
+import { ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/vue/24/outline'
 import { cn } from '@/lib/utils'
 import CalendarHeader from './CalendarHeader.vue'
 import CalendarGrid from './CalendarGrid.vue'
@@ -26,6 +27,8 @@ dayjs.extend(weekOfYear)
 
 const props = withDefaults(defineProps<CalendarRootProps & { class?: HTMLAttributes['class']; showWeekNumber?: boolean }>(), {
   weekStartsOn: 1,
+  // 始终渲染 6 周，避免不同月份（4/5/6 周）切换时面板高度跳动
+  fixedWeeks: true,
 })
 
 const emits = defineEmits<CalendarRootEmits>()
@@ -46,9 +49,19 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     v-bind="forwarded"
   >
     <CalendarHeader>
-      <CalendarPrevButton />
+      <div class="flex items-center gap-1">
+        <CalendarPrevButton :prev-page="(date: DateValue) => date.subtract({ years: 1 })">
+          <ChevronDoubleLeftIcon class="h-4 w-4" />
+        </CalendarPrevButton>
+        <CalendarPrevButton />
+      </div>
       <CalendarHeading />
-      <CalendarNextButton />
+      <div class="flex items-center gap-1">
+        <CalendarNextButton />
+        <CalendarNextButton :next-page="(date: DateValue) => date.add({ years: 1 })">
+          <ChevronDoubleRightIcon class="h-4 w-4" />
+        </CalendarNextButton>
+      </div>
     </CalendarHeader>
 
     <div class="flex flex-col gap-y-4 mt-4 sm:flex-row sm:gap-x-4 sm:gap-y-0">

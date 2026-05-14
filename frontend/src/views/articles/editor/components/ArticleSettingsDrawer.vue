@@ -87,13 +87,11 @@
                             <Calendar :model-value="(dateValue as any)" show-week-number
                                 @update:model-value="(val: any) => $emit('update:dateValue', val)" />
                             <div class="border-t p-3">
-                                <Label class="text-xs text-muted-foreground mb-2 block capitalize">{{ $t('time')
-                                    }}</Label>
                                 <div class="relative">
                                     <ClockIcon class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-10" />
-                                    <Input type="time" step="1" :model-value="timeValue"
-                                        class="h-9 pl-9 accent-primary selection:bg-primary selection:text-primary-foreground"
-                                        @update:model-value="(val: any) => $emit('update:timeValue', val as string)" />
+                                    <Input v-model="dateTimeDraft" placeholder="YYYY-MM-DD HH:mm:ss"
+                                        class="h-9 pl-9 selection:bg-primary selection:text-primary-foreground"
+                                        @blur="commitDateTime" @keyup.enter="commitDateTime" />
                                 </div>
                             </div>
                         </PopoverContent>
@@ -161,7 +159,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -182,7 +180,7 @@ const props = defineProps<{
     availableTags: string[]
     availableCategories: { name: string; slug: string }[]  // 分类对象列表
     dateValue: DateValue
-    timeValue: string
+    dateTimeValue: string
     featureDisplayValue: string
     featureImagePreviewSrc: string
     isGeneratingSlug?: boolean
@@ -192,7 +190,7 @@ const emit = defineEmits<{
     'update:open': [value: boolean]
     'update:tagInput': [value: string]
     'update:dateValue': [value: DateValue]
-    'update:timeValue': [value: string]
+    'update:dateTimeValue': [value: string]
     'update:featureDisplayValue': [value: string]
     addTag: []
     removeTag: [tag: string]
@@ -220,4 +218,13 @@ const openModel = computed({
     get: () => props.open,
     set: (val: boolean) => emit('update:open', val),
 })
+
+// 日期时间手动输入：用本地草稿承接输入中途的非法字符串，失焦/回车时才提交。
+// 提交后用 nextTick 把草稿拉回 prop —— 合法则同步成规范化后的值，非法则回滚到上次有效值。
+const dateTimeDraft = ref(props.dateTimeValue)
+watch(() => props.dateTimeValue, (v) => { dateTimeDraft.value = v })
+const commitDateTime = () => {
+    emit('update:dateTimeValue', dateTimeDraft.value)
+    nextTick(() => { dateTimeDraft.value = props.dateTimeValue })
+}
 </script>
